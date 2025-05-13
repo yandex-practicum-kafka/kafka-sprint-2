@@ -85,9 +85,9 @@ kafkastreams/
 
 ### Файлы настроек/конфигурации
 
-Приложения настраиваются посредством следующих конфигурационных файлов в каталоге [resources](./kafkastreams/src/main/resources):  
+Приложения настраиваются посредством следующих конфигурационных файлов в каталоге [resources](./src/main/resources):  
 
-•   `application.properties`: Файл [resources/application.properties](./kafkastreams/src/main/resources/application.properties) общих настроек Spring-приложения.  
+•   `application.properties`: Файл [resources/application.properties](./src/main/resources/application.properties) общих настроек Spring-приложения.  
 	- Задает имя приложения и порт сервера (8080).  
 	- Настраивает подключение к Kafka брокеру по адресу kafka:9092.  
 	- Определяет ID приложения Kafka Streams.  
@@ -99,9 +99,9 @@ kafkastreams/
 
 ### Файлы ресурсов, конфигурации приложения  
 
-(см. [resources](./kafkastreams/src/main/resources))  
+(см. [resources](./src/main/resources))  
 
-•   `blocked_users.json`: JSON-файл [resources/blocked_users.json](./kafkastreams/src/main/resources/blocked_users.json), в котором ключами являются идентификаторы пользователей, а значениями — списки ID заблокированных ими других пользователей. Например, пользователь с ID "1" заблокировал множество пользователей с указанными ID.  
+•   `blocked_users.json`: JSON-файл [resources/blocked_users.json](./src/main/resources/blocked_users.json), в котором ключами являются идентификаторы пользователей, а значениями — списки ID заблокированных ими других пользователей. Например, пользователь с ID "1" заблокировал множество пользователей с указанными ID.  
 ```
 {
     "1": [76, 23, 57, 94, 16, 3, 81, 49, 62, 100, 7, 35, 68, 91],
@@ -110,7 +110,7 @@ kafkastreams/
     "4": [34, 77, 11, 52, 90, 17, 6, 45, 83, 28],
 ...
 ```
-•   `censored_words.txt `: Текстовый файл [resources/censored_words.txt](./kafkastreams/src/main/resources/censored_words.txt) со списком слов, подлежащих цензуре в сообщениях. Например, случайные слова из следующего списка:  
+•   `censored_words.txt `: Текстовый файл [resources/censored_words.txt](./src/main/resources/censored_words.txt) со списком слов, подлежащих цензуре в сообщениях. Например, случайные слова из следующего списка:  
 ```
 pub
 bagel
@@ -119,7 +119,7 @@ fsh
 shoulder
 ...
 ```
-•   `messages.txt`:  Файл [resources/messages.txt](./kafkastreams/src/main/resources/messages.txt), содержащий 100 сообщений на морскую тематику. Примеры сообщений:  
+•   `messages.txt`:  Файл [resources/messages.txt](./src/main/resources/messages.txt), содержащий 100 сообщений на морскую тематику. Примеры сообщений:  
 ```
 Why did the old sailor bring a ladder to the pub? He heard the drinks were on the house!
 What do you call a seagull who flies over a bay? A bagel!
@@ -169,13 +169,13 @@ json
 2025-05-11 17:38:20.766 | 2025-05-11T14:38:20.754Z  INFO 1 --- [kafka-streams] [-StreamThread-1] c.e.k.config.KafkaStreamsProcessor       : Censoring message: key=null, message=Message(userId=81, receiverId=14, message=What did the fish say when he hit the wall? Dam!, timestamp=2025-05-11T14:37:49.012Z), censoredMessage=What did the fish say when he hit the wall? ***!  
 ```
 
-3. Проверьте, что сообщения от заблокированных пользователей [resources/blocked_users.json](./kafkastreams/src/main/resources/blocked_users.json) не доходят до получателей (`isBlocked=true`).  
+3. Проверьте, что сообщения от заблокированных пользователей [resources/blocked_users.json](./src/main/resources/blocked_users.json) не доходят до получателей (`isBlocked=true`).  
 ```
 2025-05-11 17:38:20.112 | 2025-05-11T14:38:20.107Z  INFO 1 --- [kafka-streams] [-StreamThread-1] c.e.k.config.KafkaStreamsProcessor       : Filtering message: key=null, message=Message(userId=37, receiverId=75, message=What's a pirate's favorite Christmas decoration? Orrr-naments!, timestamp=2025-05-11T14:37:48.640Z), isBlocked=true  
 2025-05-11 17:38:20.112 | 2025-05-11T14:38:20.108Z  INFO 1 --- [kafka-streams] [-StreamThread-1] c.e.k.service.BlockedUserService         : Проверяем, не заблокирован ли пользователь 83 пользователем 28  
 ```
 
-4. Проверьте, что сообщения цензурируются в соответствии со списком запрещенных слов (слово `Squash` из списка цензурируемых [resources/censored_words.txt](./kafkastreams/src/main/resources/censored_words.txt) экранируется `***`).  
+4. Проверьте, что сообщения цензурируются в соответствии со списком запрещенных слов (слово `Squash` из списка цензурируемых [resources/censored_words.txt](./src/main/resources/censored_words.txt) экранируется `***`).  
 ```
 2025-05-11 17:38:20.112 | 2025-05-11T14:38:20.108Z  INFO 1 --- [kafka-streams] [-StreamThread-1] c.e.k.config.KafkaStreamsProcessor       : Filtering message: key=null, message=Message(userId=83, receiverId=28, message=What do you get if you drop a pumpkin? Squash., timestamp=2025-05-11T14:37:48.641Z), isBlocked=false  
 2025-05-11 17:38:20.113 | 2025-05-11T14:38:20.108Z  INFO 1 --- [kafka-streams] [-StreamThread-1] c.e.k.config.KafkaStreamsProcessor       : Censoring message: key=null, message=Message(userId=83, receiverId=28, message=What do you get if you drop a pumpkin? Squash., timestamp=2025-05-11T14:37:48.641Z), censoredMessage=What do you get if you drop a pumpkin? ***.  
