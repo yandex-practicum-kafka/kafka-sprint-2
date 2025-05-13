@@ -78,16 +78,7 @@ ksqldb/
 
   Чтобы оптимизировать запросы к таблице `user_statistics`, мы сначала создаем поток `messages_stream_rekeyed` путем повторного разделения (repartitioning) исходного потока `messages_stream` по `user_id`. Затем создаем таблицу `user_statistics_keyed` на основе этого потока. Это гарантирует, что все данные для конкретного пользователя будут находиться в одном разделе Kafka, что упрощает и ускоряет запросы, использующие `user_id` в качестве ключа.  
   
-### Аналитика сообщений в реальном времени с помощью Kafka Streams и ksqlDB  
-
-Этот проект демонстрирует анализ сообщений в реальном времени с использованием Apache Kafka, Kafka Streams (неявно через ksqlDB) и ksqlDB.  Он анализирует сообщения, содержащие идентификаторы пользователей, идентификаторы получателей, содержимое сообщений и временные метки, чтобы предоставить информацию об объеме сообщений, количестве уникальных получателей и активности самых активных пользователей.  
-
-### Необходимые условия  
-
-•   Docker  
-•   Docker Compose  
-
-## Настройка  
+### Настройка  
 
 1.  **Клонируйте репозиторий:**  
 
@@ -97,14 +88,14 @@ bash
     cd <каталог_проекта>
 ```
 
-2. Запустите инфраструктуру Kafka с помощью Docker Compose:
+2. Соберите проект и запустите инфраструктуру Kafka с помощью Docker Compose:
 
 ```
 bash
-  docker-compose up -d
+  docker-compose up --build
 ```
 
-  Эта команда запустит следующие сервисы:  
+  Эта команда соберёт приложение и запустит следующие сервисы:  
 
   •  ZooKeeper (или Kraft Controller): Для управления метаданными Kafka.  
   •  Брокер Kafka: Центральный брокер сообщений. Он получает сообщения от производителя и делает их доступными для потребителей.  
@@ -114,14 +105,12 @@ bash
 
   Подождите, пока все сервисы запустятся. Вы можете проверить их статус с помощью docker ps. Инициализация Kafka и ksqlDB может занять несколько минут.  
 
-3. Соберите и запустите Spring Boot приложение:  
+3. ОТдельно можно собрать и запустить Spring Boot приложение, используя:  
 
 ```
 bash
   ./gradlew bootRun
 ```
-
-  (Или импортируйте проект в свою IDE и запустите класс KafkaAppApplication.)  
 
   Это приложение выступает в качестве производителя сообщений, генерируя смоделированные сообщения и отправляя их в топик messages Kafka. Оно автоматически запускается через фиксированный интервал, определенный в src/main/resources/application.yml.  
 
@@ -185,52 +174,67 @@ bash
   •  `CREATE STREAM messages\_stream\_rekeyed`: Создает поток с переназначенным ключом, используя предложение PARTITION BY user_id из топика messages. Это гарантирует, что все сообщения для одного и того же пользователя обрабатываются одним и тем же узлом ksqlDB.  
   •  `CREATE TABLE user\_statistics\_keyed`: Создает таблицу с агрегированной статистикой для каждого пользователя (количество отправленных сообщений и количество уникальных получателей). Эта таблица строится на основе потока с переназначенным ключом для оптимальной агрегации.  
 
+(см. [ksql/ksqldb-queries.sql](ksql/ksqldb-queries.sql))
+
 ```
 sql
-  -- Пример запросов (из ksqldb-queries.sql)
-  CREATE STREAM messages_stream (
+-- Создаем поток из топика messages
+CREATE STREAM messages_stream (
     user_id VARCHAR KEY,
     recipient_id VARCHAR,
     message VARCHAR,
     timestamp BIGINT
-  ) WITH (
+) WITH (
     KAFKA_TOPIC = 'messages',
-    VALUE_FORMAT = 'JSON',
-    PARTITION_BY = 'user_id'
-  );
+    VALUE_FORMAT = 'JSON'
+);
 
-  CREATE TABLE total_messages AS
-  SELECT
+-- Таблица: Общее количество отправленных сообщений
+CREATE TABLE total_messages AS
+SELECT
     COUNT(*) AS total_count
-  FROM messages_stream;
+FROM messages_stream
+GROUP BY NULL; -- Нужно использовать GROUP BY NULL для агрегатов без группировки по столбцам
 
-  CREATE TABLE unique_recipients AS
-  SELECT
+-- Таблица: Количество уникальных получателей сообщений
+CREATE TABLE unique_recipients AS
+SELECT
     COUNT(DISTINCT recipient_id) AS unique_count
-  FROM messages_stream;
+FROM messages_stream
+GROUP BY NULL; -- Группируем по NULL для агрегата без группировки по другим полям
 
-  CREATE TABLE top_users AS
-  SELECT
+-- Создание таблицы: Топ-5 активных пользователей
+CREATE TABLE top_users AS
+SELECT
     user_id,
     COUNT(*) AS message_count
-  FROM messages_stream
-  GROUP BY user_id
-  EMIT CHANGES
-  LIMIT 5;
+FROM messages_stream
+GROUP BY user_id
+HAVING ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY COUNT(*) DESC) <= 5;
 
-  CREATE STREAM messages_stream_rekeyed AS
-  SELECT *
-  FROM messages_stream
-  PARTITION BY user_id;
-
-  CREATE TABLE user_statistics_keyed AS
-  SELECT
+-- Таблица: Статистика пользователей
+CREATE TABLE user_statistics AS
+SELECT
     user_id,
     COUNT(*) AS sent_messages,
     COUNT(DISTINCT recipient_id) AS unique_recipients
-  FROM messages_stream_rekeyed
-  GROUP BY user_id
-  EMIT CHANGES;
+FROM messages_stream
+GROUP BY user_id;
+
+-- Создание нового потока: сообщения, перехваченные для агрегации
+CREATE STREAM messages_stream_rekeyed AS
+SELECT *
+FROM messages_stream
+PARTITION BY user_id; -- Здесь вы можете перезаписать ключи, создавая новый поток на основе существующего.
+
+-- Таблица: Статистика пользователей с оптимизацией для доступа по ключу
+CREATE TABLE user_statistics_keyed AS
+SELECT
+    user_id,
+    COUNT(*) AS sent_messages,
+    COUNT(DISTINCT recipient_id) AS unique_recipients
+FROM messages_stream_rekeyed
+GROUP BY user_id;
 ```
 
 ### Тестирование и проверка  
@@ -282,7 +286,7 @@ sql
 
 Следующие параметры конфигурации можно настроить в соответствующих файлах:  
 
-•   **src/main/resources/application.yml (Spring Boot):**  
+•   [resources/application.yml](./src/main/resources/application.yml) (Spring Boot):  
     *   `kafka.bootstrap-servers`: Адрес брокера Kafka.  
     *   `kafka.topic.messages`: Имя входного топика.  
     *   `message.generation.interval`: Интервал (в миллисекундах), через который Spring Boot приложение генерирует сообщения.  
