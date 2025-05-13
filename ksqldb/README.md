@@ -82,7 +82,6 @@ ksqldb/
 
 1.  **Клонируйте репозиторий:**  
 
-bash
 ```
     git clone <URL_репозитория>
     cd <каталог_проекта>
@@ -91,7 +90,6 @@ bash
 2. Соберите проект и запустите инфраструктуру Kafka с помощью Docker Compose:
 
 ```
-bash
   docker-compose up --build
 ```
 
@@ -108,7 +106,6 @@ bash
 3. ОТдельно можно собрать и запустить Spring Boot приложение, используя:  
 
 ```
-bash
   ./gradlew bootRun
 ```
 
@@ -129,14 +126,12 @@ bash
 1. Войдите в контейнер Kafka:  
 
 ```
-bash
   docker exec -it kafka bash
 ```
 
 2. Создайте топик messages:  
 
 ```
-bash
   kafka-topics --create --topic messages --partitions 6 --replication-factor 1 --bootstrap-server localhost:9092
 ```
 
@@ -148,7 +143,6 @@ bash
 3. Выйдите из контейнера Kafka:  
 
 ```
-bash
   exit
 ```
 
@@ -157,7 +151,6 @@ bash
 1. Подключитесь к ksqlDB CLI:  
 
 ```
-bash
   docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ```
 
@@ -177,7 +170,6 @@ bash
 (см. [ksql/ksqldb-queries.sql](ksql/ksqldb-queries.sql))
 
 ```
-sql
 -- Создаем поток из топика messages
 CREATE STREAM messages_stream (
     user_id VARCHAR KEY,
