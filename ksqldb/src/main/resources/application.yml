@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: ksqldb-app  # Имя приложения, используется в логах и мониторинге
+  kafka:
+    bootstrap-servers: broker:29092  # Адрес Kafka-брокера (хост:порт)
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer   # Сериализатор ключа сообщений в Kafka
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer # Сериализатор значения сообщений в Kafka
+
+kafka:
+  topic:
+    messages: messages           # Название Kafka-топика для сообщений
+    user-statistics: user_statistics  # Название Kafka-топика для статистики пользователей
+
+message:
+  generation:
+    interval: 1000  # Интервал генерации нового сообщения в миллисекундах (здесь — 1 секунда)
